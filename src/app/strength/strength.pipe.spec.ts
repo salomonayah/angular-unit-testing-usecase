@@ -1,5 +1,6 @@
 import { StrengthPipe } from "./strength.pipe"
 
+// isolated test
 describe("Strength pipe", () => {
 
   it("Should return value (weak) for value less than 10", () => {
@@ -14,5 +15,5 @@ describe("Strength pipe", () => {
     const result = thePipeIntense.transform(15);
     expect(result).toBe("15 (strong)");
   })
-  
+
 })
