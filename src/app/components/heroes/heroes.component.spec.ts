@@ -1,11 +1,24 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing"
-import { Component, Input, NO_ERRORS_SCHEMA } from "@angular/core"
+import { Component, Directive, Input, NO_ERRORS_SCHEMA } from "@angular/core"
 import { By } from "@angular/platform-browser"
 import { of } from "rxjs"
 import { HeroesComponent } from "./heroes.component"
 import { HeroComponent } from "../hero/hero.component"
 import { HeroService } from "../../services/hero.service"
 
+@Directive({
+  selector: '[routerLink]',
+  host: { '(click)': 'onClick()' }
+})
+export class RouterLinkDirectiveStub {
+  @Input('routerLink') linkParams: any;
+
+  navigatedTo: any = null;
+
+  onClick() {
+    this.navigatedTo = this.linkParams;
+  }
+}
 
 // Shallow testing
 describe("HeroesComponent", () => {
@@ -39,7 +52,8 @@ describe("HeroesComponent", () => {
     TestBed.configureTestingModule({
       declarations: [
         HeroesComponent,
-        HeroComponent
+        HeroComponent,
+        RouterLinkDirectiveStub
       ],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [{
@@ -69,8 +83,8 @@ describe("HeroesComponent", () => {
 
     let debugElements = fixture.debugElement.queryAll(By.directive(HeroComponent));
 
-    expect(debugElements.length).toEqual(4);
-    expect(debugElements[0].componentInstance.hero.name).toEqual("Donne");
+    expect(debugElements.length).toBe(4);
+    expect(debugElements[3].componentInstance.hero.name).toEqual("Rosita");
   })
 
 
@@ -103,12 +117,53 @@ describe("HeroesComponent", () => {
 
     let debugElements = fixture.debugElement.queryAll(By.directive(HeroComponent));
     (<HeroComponent>debugElements[0].componentInstance).delete.emit(heroesList[0]); // emit event
-    
+
 
     expect(fixture.componentInstance.delete).toHaveBeenCalledWith(heroesList[0]);
 
   })
 
+
+
+  it('should add a new hero to the hero list when the add button is clicked', () => {
+    mockHeroService.getHeroes.and.returnValue(of(heroesList));
+
+    fixture.detectChanges();
+
+    const name = "Mr. Ice";
+
+    mockHeroService.addHero.and.returnValue(of({ id: 5, name: name, strength: 4 }));
+
+    const inputElement = fixture.debugElement.query(By.css('input')).nativeElement;
+    const addButton = fixture.debugElement.queryAll(By.css('button'))[0];
+
+    inputElement.value = name;
+
+    addButton.triggerEventHandler('click', null);
+
+    fixture.detectChanges();
+
+    const heroText = fixture.debugElement.query(By.css('ul')).nativeElement.textContent;
+
+    expect(heroText).toContain(name);
+  })
+
+
+  it('should have the correct route for the first hero', () => {
+    mockHeroService.getHeroes.and.returnValue(of(heroesList));
+
+    fixture.detectChanges();
+
+    const heroComponents = fixture.debugElement.queryAll(By.directive(HeroComponent));
+
+    let routerLink = heroComponents[0]
+      .query(By.directive(RouterLinkDirectiveStub))
+      .injector.get(RouterLinkDirectiveStub);
+
+    heroComponents[0].query(By.css('a')).triggerEventHandler('click', null);
+
+    expect(routerLink.navigatedTo).toBe('/detail/1');
+  })
 
 
 })
